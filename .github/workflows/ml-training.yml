@@ -9,12 +9,10 @@ on:
         description: 'Number of trees'
         required: false
         default: '100'
-        type: string
       max_depth:
         description: 'Max depth'
         required: false
         default: '10'
-        type: string
 
 env:
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
@@ -37,26 +35,16 @@ jobs:
       run: |
         pip install mlflow scikit-learn pandas numpy
     
-    - name: Run MLflow training
+    - name: Run MLflow training with MLProject
       run: |
         cd MLProject
-        python modelling.py --n_estimators ${{ github.event.inputs.n_estimators || '100' }} --max_depth ${{ github.event.inputs.max_depth || '10' }}
-    
-    - name: Upload artifacts to GitHub (Skilled)
-      uses: actions/upload-artifact@v4
-      with:
-        name: mlflow-models
-        path: MLProject/mlruns/
-        retention-days: 14
+        mlflow run . -e main -P n_estimators=${{ github.event.inputs.n_estimators }} -P max_depth=${{ github.event.inputs.max_depth }} --no-conda
     
     - name: Login to Docker Hub
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
-    
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
     
     - name: Build Docker image
       run: |
@@ -65,10 +53,3 @@ jobs:
     - name: Push Docker image to Docker Hub
       run: |
         docker push ${{ env.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:latest
-        docker tag ${{ env.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:latest ${{ env.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
-        docker push ${{ env.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
-    
-    - name: Verify Docker image
-      run: |
-        docker images | grep ${{ env.DOCKER_IMAGE_NAME }}
-        echo "Docker image pushed: ${{ env.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:latest"
