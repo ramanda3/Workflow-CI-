@@ -37,7 +37,7 @@ def main():
     mlflow.sklearn.autolog()
     
     # Set experiment
-    mlflow.set_experiment("CI_Churn_Prediction")
+    # mlflow.set_experiment("CI_Churn_Prediction")
     
     # Train model with MLflow tracking
     with mlflow.start_run(run_name=f"CI_RF_n{args.n_estimators}_d{args.max_depth}"):
